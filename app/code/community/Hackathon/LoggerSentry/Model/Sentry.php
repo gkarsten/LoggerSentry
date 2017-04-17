@@ -40,7 +40,7 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
      */
     public function __construct($filename)
     {
-        /* @var $helper Hackathon_Logger_Helper_Data */
+        /* @var $helper FireGento_Logger_Helper_Data */
         $helper = Mage::helper('firegento_logger');
         $options = array(
             'logger' => $helper->getLoggerConfig('sentry/logger_name')
@@ -50,21 +50,21 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
         } catch (Exception $e) {
             // Ignore errors so that it doesn't crush the website when/if Sentry goes down.
         }
-
     }
 
     /**
      * Places event line into array of lines to be used as message body.
      *
-     * @param FireGento_Logger_Model_Event $event Event data
-     *
+     * @param array $eventObj log data event
+     * @internal param FireGento_Logger_Model_Event $event Event data
      * @throws Zend_Log_Exception
-     * @return void
+     * @return $this|void
+     *
      */
     protected function _write($eventObj)
     {
         try {
-            /* @var $helper Hackathon_Logger_Helper_Data */
+            /* @var $helper FireGento_Logger_Helper_Data */
             $helper = Mage::helper('firegento_logger');
             $helper->addEventMetadata($eventObj);
 
@@ -75,7 +75,7 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
                 'line' => $event['line'],
             );
 
-            foreach (array('REQUEST_METHOD', 'REQUEST_URI', 'REMOTE_IP', 'HTTP_USER_AGENT') as $key) {
+            foreach (array('requestUri', 'requestData', 'remoteAddress', 'httpUserAgent') as $key) {
                 if (!empty($event[$key])) {
                     $additional[$key] = $event[$key];
                 }
@@ -90,9 +90,13 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
                 return $this; // Don't log anything warning or less severe.
             }
 
-            $this->_sentryClient->captureMessage(
-                $event['message'], array(), $this->_priorityToLevelMapping[$priority], true, $additional
+            $data = array(
+                'level' => $this->_priorityToLevelMapping[$priority],
+                'tags'  => $this->_getTagsData(),
+                'user'  => $this->_getUserData(),
             );
+
+            $this->_sentryClient->captureMessage($event['message'], array(), $data, true, $additional);
 
         } catch (Exception $e) {
             throw new Zend_Log_Exception($e->getMessage(), $e->getCode());
@@ -100,7 +104,51 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
     }
 
     /**
-     * @param  int  $priority 
+     * @return array
+     */
+    protected function _getUserData()
+    {
+        $user = array();
+
+        try {
+            $customerSession = Mage::getModel('customer/session');
+
+            $user = array(
+                'isLoggedIn'      => $customerSession->isLoggedIn(),
+                'customerId'      => $customerSession->getCustomerId(),
+                'customerGroupId' => $customerSession->getCustomerGroupId(),
+                'customerName'    => $customerSession->getCustomerId() ? $customerSession->getCustomer()->getName() : null,
+                'customerEmail'   => $customerSession->getCustomerId() ? $customerSession->getCustomer()->getEmail() : null,
+            );
+        } catch (Exception $e) {
+            // Ignore errors
+        }
+
+        return $user;
+    }
+
+    /**
+     * @return array
+     */
+    protected function _getTagsData()
+    {
+        $tags = array();
+
+        try {
+            $cronTask = Mage::registry('current_cron_task');
+            $tags = array(
+                'cron_task'          => $cronTask ? true : false,
+                'cron_task_job_code' => $cronTask ? $cronTask->getJobCode() : null,
+            );
+        } catch (Exception $e) {
+            // Ignore errors
+        }
+
+        return $tags;
+    }
+
+    /**
+     * @param  int $priority
      * @return boolean           True if we should be reporting this, false otherwise.
      */
     protected function _isHighEnoughPriorityToReport($priority)
@@ -118,10 +166,10 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
      */
     protected function _assumePriorityByMessage(&$event)
     {
-        if (stripos($event['message'], "warn") === 0) {
+        if (stripos($event['message'], 'warn') === 0) {
             $event['priority'] = 4;
         }
-        if (stripos($event['message'], "notice") === 0) {
+        if (stripos($event['message'], 'notice') === 0) {
             $event['priority'] = 5;
         }
 
