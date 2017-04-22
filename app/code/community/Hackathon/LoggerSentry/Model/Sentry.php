@@ -11,12 +11,15 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
     protected $_options = array();
 
     /**
-     * sentry client
+     * Sentry client
      *
      * @var Raven_Client
      */
     protected $_sentryClient;
 
+    /**
+     * @var array
+     */
     protected $_priorityToLevelMapping
         = array(
             0 => 'fatal',
@@ -30,9 +33,7 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
         );
 
     /**
-     *
-     *
-     * ignore filename - it is Zend_Log_Writer_Abstract dependency
+     * Ignore filename - it is Zend_Log_Writer_Abstract dependency
      *
      * @param string $filename
      *
@@ -58,11 +59,16 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
      * @param array $eventObj log data event
      * @internal param FireGento_Logger_Model_Event $event Event data
      * @throws Zend_Log_Exception
-     * @return $this|void
+     * @return void
      *
      */
     protected function _write($eventObj)
     {
+        // Check, if Sentry Logger is disabled
+        if ((bool)Mage::registry('disable_sentry_logger')) {
+            return;
+        }
+
         try {
             /* @var $helper FireGento_Logger_Helper_Data */
             $helper = Mage::helper('firegento_logger');
@@ -87,7 +93,7 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
             $priority = isset($event['priority']) && !empty($event['priority']) ? $event['priority'] : 3;
 
             if (!$this->_isHighEnoughPriorityToReport($priority)) {
-                return $this; // Don't log anything warning or less severe.
+                return; // Don't log anything warning or less severe.
             }
 
             $data = array(
@@ -111,14 +117,20 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
         $user = array();
 
         try {
+            $adminSession = Mage::getSingleton('admin/session');
             $customerSession = Mage::getModel('customer/session');
 
             $user = array(
-                'isLoggedIn'      => $customerSession->isLoggedIn(),
-                'customerId'      => $customerSession->getCustomerId(),
-                'customerGroupId' => $customerSession->getCustomerGroupId(),
-                'customerName'    => $customerSession->getCustomerId() ? $customerSession->getCustomer()->getName() : null,
-                'customerEmail'   => $customerSession->getCustomerId() ? $customerSession->getCustomer()->getEmail() : null,
+                // Admin data
+                'isLoggedInBackend'  => $adminSession->isLoggedIn(),
+                'adminId'            => $adminSession->isLoggedIn() ? $adminSession->getUser()->getId() : null,
+                'adminUsername'      => $adminSession->isLoggedIn() ? $adminSession->getUser()->getUsername() : null,
+                // Customer data
+                'isLoggedInFrontend' => $customerSession->isLoggedIn(),
+                'customerId'         => $customerSession->getCustomerId(),
+                'customerGroupId'    => $customerSession->getCustomerGroupId(),
+                'customerName'       => $customerSession->getCustomerId() ? $customerSession->getCustomer()->getName() : null,
+                'customerEmail'      => $customerSession->getCustomerId() ? $customerSession->getCustomer()->getEmail() : null,
             );
         } catch (Exception $e) {
             // Ignore errors
