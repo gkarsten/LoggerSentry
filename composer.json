@@ -1,8 +1,6 @@
 {
-  "name": "maksold/logger-sentry",
+  "name": "gkarsten/logger-sentry",
   "type": "magento-module",
-  "description": "The purpose of this project is to log the magento error and exception messages to sentry, too. This extension is an extension of the Firegento Logger module.",
-  "homepage": "https://github.com/Maksold/LoggerSentry",
   "require": {
     "magento-hackathon/magento-composer-installer": "*",
     "firegento/logger": "1.6.0",
