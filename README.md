@@ -29,12 +29,12 @@ After you install the module you can configure it in the backend at: `System > C
                 {
                     "name":"Customweb, Authorisierung fehlgeschlagen",
                     "message":"exception 'Customweb_Payment_Exception_RecurringPaymentErrorException' with message 'Die Autorisierung ist fehlgeschlagen.",
-                    "log":true
+                    "log":false
                 },
                 {
                     "name":"TestException",
                     "message":"TestException",
-                    "log":true
+                    "log":false
                 }
             ]      
     ]]>

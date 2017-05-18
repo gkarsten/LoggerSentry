@@ -221,7 +221,7 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
             $exceptions = mage::helper('core')->jsonDecode(Mage::getStoreConfig('HackathonExcludedExceptions'));
 
             foreach($exceptions as $ex){
-                if(!$ex['log'] and $ex['message'] == $event['message'])
+                if(!$ex['log'] and strpos($event['message'],$ex['message']) !== false )
                 {
                     return true; //don't log to sentry
                 }
