@@ -76,6 +76,11 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
 
             $event = $eventObj->getEventDataArray();
 
+            if($this->isExcludedFromLog($event))
+            {
+                return $this;
+            }
+
             $additional = array(
                 'file' => $event['file'],
                 'line' => $event['line'],
@@ -96,17 +101,26 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
                 return; // Don't log anything warning or less severe.
             }
 
-            $data = array(
-                'level' => $this->_priorityToLevelMapping[$priority],
-                'tags'  => $this->_getTagsData(),
-                'user'  => $this->_getUserData(),
-            );
+            $data = array();
+            $data['level'] = $this->_priorityToLevelMapping[$priority];
+            $data['tags'] = $this->_getTagsData();
+            if ($this->_isSessionDataAvailable($additional['file'])) {
+                $data['user'] = $this->_getUserData();
+            }
 
             $this->_sentryClient->captureMessage($event['message'], array(), $data, true, $additional);
 
         } catch (Exception $e) {
             throw new Zend_Log_Exception($e->getMessage(), $e->getCode());
         }
+    }
+
+    /**
+     * @return bool
+     */
+    protected function _isSessionDataAvailable($eventFile)
+    {
+        return (strpos($eventFile, 'Cm/RedisSession') === false);
     }
 
     /**
@@ -199,5 +213,28 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
      */
     static public function factory($config)
     {
+    }
+
+    private function isExcludedFromLog($event)
+    {
+        try{
+            $exceptions = mage::helper('core')->jsonDecode(Mage::getStoreConfig('HackathonExcludedExceptions'));
+
+            foreach($exceptions as $ex){
+                if($ex['log'] and $ex['message'] == $event['message'])
+                {
+                    return true; //don't log to sentry
+                }
+            }
+        }
+        catch (Zend_Json_Exception $exception) {
+            return false;
+        }
+        catch (Exception $exception)
+        {
+            return false;
+        }
+
+        return false;
     }
 }
