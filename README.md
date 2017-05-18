@@ -19,7 +19,7 @@ The purpose of this project is to log the magento error and exception messages t
 
 After you install the module you can configure it in the backend at: `System > Configuration > Advanced > FireGento Logger > Sentry Logger`
 
-###Exclude Exceptions from Logging:
+### Exclude Exceptions from Logging:
 * exclude Exceptions like below: to **default.xml**
 * make sure to refresh the config 'php shell/config.php --mode <mode>'
 ```xml
