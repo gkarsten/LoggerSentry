@@ -1,14 +1,14 @@
-# Magento To Sentry Logger
+# Magento To Sentry Logger (Fork from Maksold)
 
 The purpose of this project is to log the magento error and exception messages to sentry, too. This extension is an extension of the [Firegento Logger module](https://github.com/firegento/firegento-logger), so you need the Logger module to use the Sentry logger.
 
 # Installation
-1. Add `"maksold/logger-sentry": "dev-master"` to your `composer.json` in the `require` section.
+1. Add `"gkarsten/logger-sentry": "dev-master"` to your `composer.json` in the `require` section.
 2. Add to your `composer.json` in the `repositories` section this:
 ```json
 {
   "type": "vcs",
-  "url": "git://github.com/maksold/LoggerSentry.git"
+  "url": "git://github.com/gkarsten/LoggerSentry.git"
 }
 ```
 
