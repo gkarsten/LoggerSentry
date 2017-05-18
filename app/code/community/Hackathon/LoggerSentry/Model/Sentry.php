@@ -76,6 +76,11 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
 
             $event = $eventObj->getEventDataArray();
 
+            if($this->isExcludedFromLog($event))
+            {
+                return $this;
+            }
+
             $additional = array(
                 'file' => $event['file'],
                 'line' => $event['line'],
@@ -199,5 +204,28 @@ class Hackathon_LoggerSentry_Model_Sentry extends Zend_Log_Writer_Abstract
      */
     static public function factory($config)
     {
+    }
+
+    private function isExcludedFromLog($event)
+    {
+        try{
+            $exceptions = mage::helper('core')->jsonDecode(Mage::getStoreConfig('HackathonExcludedExceptions'));
+
+            foreach($exceptions as $ex){
+                if($ex['log'] and $ex['message'] == $event['message'])
+                {
+                    return true; //don't log to sentry
+                }
+            }
+        }
+        catch (Zend_Json_Exception $exception) {
+            return false;
+        }
+        catch (Exception $exception)
+        {
+            return false;
+        }
+
+        return false;
     }
 }
